@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -138,7 +138,7 @@ def like_post(request):
         like_filter.delete()
         post.no_of_likes = post.no_of_likes - 1
         post.save()
-    return redirect("core:index")
+    return HttpResponse(post.no_of_likes)
 
 @login_required(login_url="core:signin")
 def profile(request, pk):
@@ -171,14 +171,19 @@ def follow(request):
     if request.method == "POST":
         follower = request.POST.get("follower")
         user = request.POST.get("user")
+        result = ""
+
         if FollowersCount.objects.filter(follower=follower, user=user).first():
             delete_follower = FollowersCount.objects.get(follower=follower, user=user)
             delete_follower.delete()
+            result += "Follow"
         else:
             new_follower = FollowersCount.objects.create(follower=follower, user=user)
             new_follower.save()
-
-        return redirect("core:profile", pk=user)
+            result += "Unfollow"
+        user_followers = len(FollowersCount.objects.filter(user=user))
+        return JsonResponse({"buttonText": result, "userFollowers": user_followers})
+        # return redirect("core:profile", pk=user)
     else:
         return redirect("core:index")
 
